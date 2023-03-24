@@ -111,3 +111,23 @@ export async function createGist(
   }
   return response.data.html_url;
 }
+
+export async function codeSearch(
+  credentials: Credentials,
+  searchQuery: string,
+): Promise<string[]> {
+  const octokit = await credentials.getOctokit();
+
+  const response = await octokit.search.code({
+    q: searchQuery,
+    per_page: 1000,
+  });
+
+  if (response.status === 200) {
+    const nwos = response.data.items.map((i) => i.repository.full_name);
+
+    return [...new Set(nwos)];
+  }
+
+  return [];
+}

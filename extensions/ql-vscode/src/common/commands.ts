@@ -219,6 +219,7 @@ export type DatabasePanelCommands = {
   "codeQLVariantAnalysisRepositories.openOnGitHubContextMenu": SingleSelectionCommandFunction<DbTreeViewItem>;
   "codeQLVariantAnalysisRepositories.renameItemContextMenu": SingleSelectionCommandFunction<DbTreeViewItem>;
   "codeQLVariantAnalysisRepositories.removeItemContextMenu": SingleSelectionCommandFunction<DbTreeViewItem>;
+  "codeQLVariantAnalysisRepositories.importFromCodeSearchContextMenu": SingleSelectionCommandFunction<DbTreeViewItem>;
 };
 
 export type AstCfgCommands = {

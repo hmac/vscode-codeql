@@ -405,6 +405,10 @@
         "title": "Delete"
       },
       {
+        "command": "codeQLVariantAnalysisRepositories.importFromCodeSearchContextMenu",
+        "title": "Import from Code Search"
+      },
+      {
         "command": "codeQLDatabases.chooseDatabaseFolder",
         "title": "Choose Database from Folder",
         "icon": {
@@ -829,6 +833,11 @@
           "group": "2_qlContextMenu@2"
         },
         {
+          "command": "codeQLVariantAnalysisRepositories.importFromCodeSearchContextMenu",
+          "when": "view == codeQLVariantAnalysisRepositories && viewItem =~ /canBeImported/",
+          "group": "2_qlContextMenu@2"
+        },
+        {
           "command": "codeQLVariantAnalysisRepositories.openOnGitHubContextMenu",
           "when": "view == codeQLVariantAnalysisRepositories && viewItem =~ /canBeOpenedOnGitHub/",
           "group": "2_qlContextMenu@1"
@@ -1112,6 +1121,10 @@
         },
         {
           "command": "codeQLVariantAnalysisRepositories.openOnGitHubContextMenu",
+          "when": "false"
+        },
+        {
+          "command": "codeQLVariantAnalysisRepositories.importFromCodeSearchContextMenu",
           "when": "false"
         },
         {

@@ -93,6 +93,13 @@ export class DbManager {
     await this.updateDbItemExpandedState(dbItem, true);
   }
 
+  public async addNewRemoteRepos(
+    nwoList: string[],
+    parentList?: string,
+  ): Promise<void> {
+    await this.dbConfigStore.addRemoteRepos(nwoList, parentList);
+  }
+
   public async addNewRemoteRepo(
     nwo: string,
     parentList?: string,

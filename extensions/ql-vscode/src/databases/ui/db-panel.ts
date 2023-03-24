@@ -32,6 +32,7 @@ import { getControllerRepo } from "../../variant-analysis/run-remote-query";
 import { getErrorMessage } from "../../pure/helpers-pure";
 import { DatabasePanelCommands } from "../../common/commands";
 import { App } from "../../common/app";
+import { codeSearch } from "../../variant-analysis/gh-api/gh-api-client";
 
 export interface RemoteDatabaseQuickPickItem extends QuickPickItem {
   kind: string;
@@ -93,9 +94,10 @@ export class DbPanel extends DisposableObject {
         this.renameItem.bind(this),
       "codeQLVariantAnalysisRepositories.removeItemContextMenu":
         this.removeItem.bind(this),
+      "codeQLVariantAnalysisRepositories.importFromCodeSearchContextMenu":
+        this.importFromCodeSearch.bind(this),
     };
   }
-
   private async openConfigFile(): Promise<void> {
     const configPath = this.dbManager.getConfigPath();
     const document = await workspace.openTextDocument(configPath);
@@ -369,6 +371,26 @@ export class DbPanel extends DisposableObject {
     }
 
     await this.app.commands.execute("vscode.open", Uri.parse(githubUrl));
+  }
+
+  private async importFromCodeSearch(
+    treeViewItem: DbTreeViewItem,
+  ): Promise<void> {
+    if (treeViewItem.dbItem?.kind !== DbItemKind.RemoteUserDefinedList) {
+      throw Error("...");
+    }
+
+    const codeSearchQuery = await window.showInputBox({
+      title: "Code search query",
+      prompt: "Insert code search query",
+    });
+    if (!codeSearchQuery) {
+      return;
+    }
+
+    const repos = await codeSearch(this.app.credentials, codeSearchQuery);
+
+    await this.dbManager.addNewRemoteRepos(repos, treeViewItem.dbItem.listName);
   }
 
   private async setupControllerRepository(): Promise<void> {
