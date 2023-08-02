@@ -60,6 +60,7 @@ describe("runAutoModelQueries", () => {
 
     const options = {
       mode: Mode.Application,
+      candidateMethods: [],
       cliServer: mockedObject<CodeQLCliServer>({
         resolveQlpacks: jest.fn().mockResolvedValue({
           "/a/b/c/my-extension-pack": {},
@@ -140,7 +141,10 @@ describe("runAutoModelQueries", () => {
     expect(result).not.toBeUndefined();
 
     expect(options.cliServer.resolveQlpacks).toHaveBeenCalledTimes(1);
-    expect(options.cliServer.resolveQlpacks).toHaveBeenCalledWith([], true);
+    expect(options.cliServer.resolveQlpacks).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.stringContaining("/tmp")]),
+      true,
+    );
     expect(resolveQueriesSpy).toHaveBeenCalledTimes(1);
     expect(resolveQueriesSpy).toHaveBeenCalledWith(
       options.cliServer,
@@ -165,7 +169,7 @@ describe("runAutoModelQueries", () => {
         quickEvalCountOnly: false,
       },
       false,
-      [],
+      expect.arrayContaining([expect.stringContaining("/tmp")]),
       ["/a/b/c/my-extension-pack"],
       "/tmp/queries",
       undefined,
