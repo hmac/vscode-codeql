@@ -2,6 +2,7 @@ import {
   VSCodeDataGridCell,
   VSCodeDataGridRow,
   VSCodeLink,
+  VSCodeProgressRing,
 } from "@vscode/webview-ui-toolkit/react";
 import * as React from "react";
 import { ChangeEvent, useCallback, useMemo } from "react";
@@ -23,6 +24,7 @@ import {
   ModelingStatus,
   ModelingStatusIndicator,
 } from "./ModelingStatusIndicator";
+import { InProgressDropdown } from "./InProgressDropdown";
 
 const ApiOrMethodCell = styled(VSCodeDataGridCell)`
   display: flex;
@@ -43,6 +45,11 @@ const ViewLink = styled(VSCodeLink)`
   white-space: nowrap;
 `;
 
+const ProgressRing = styled(VSCodeProgressRing)`
+  width: 16px;
+  height: 16px;
+`;
+
 const modelTypeOptions: Array<{ value: ModeledMethodType; label: string }> = [
   { value: "none", label: "Unmodeled" },
   { value: "source", label: "Source" },
@@ -55,6 +62,7 @@ type Props = {
   externalApiUsage: ExternalApiUsage;
   modeledMethod: ModeledMethod | undefined;
   methodIsUnsaved: boolean;
+  modelingInProgress: boolean;
   mode: Mode;
   hideModeledApis: boolean;
   onChange: (
@@ -217,36 +225,57 @@ function ModelableMethodRow(props: Props) {
         )}
         <ViewLink onClick={jumpToUsage}>View</ViewLink>
       </ApiOrMethodCell>
-      <VSCodeDataGridCell gridColumn={2}>
-        <Dropdown
-          value={modeledMethod?.type ?? "none"}
-          options={modelTypeOptions}
-          onChange={handleTypeInput}
-        />
-      </VSCodeDataGridCell>
+      {props.modelingInProgress && (
+        <VSCodeDataGridCell gridColumn={2}>
+          <ProgressRing />
+        </VSCodeDataGridCell>
+      )}
       <VSCodeDataGridCell gridColumn={3}>
-        <Dropdown
-          value={modeledMethod?.input}
-          options={inputOptions}
-          disabled={!showInputCell}
-          onChange={handleInputInput}
-        />
+        {props.modelingInProgress ? (
+          <InProgressDropdown />
+        ) : (
+          <Dropdown
+            value={modeledMethod?.type ?? "none"}
+            options={modelTypeOptions}
+            onChange={handleTypeInput}
+          />
+        )}
       </VSCodeDataGridCell>
       <VSCodeDataGridCell gridColumn={4}>
-        <Dropdown
-          value={modeledMethod?.output}
-          options={outputOptions}
-          disabled={!showOutputCell}
-          onChange={handleOutputInput}
-        />
+        {props.modelingInProgress ? (
+          <InProgressDropdown />
+        ) : (
+          <Dropdown
+            value={modeledMethod?.input}
+            options={inputOptions}
+            disabled={!showInputCell}
+            onChange={handleInputInput}
+          />
+        )}
       </VSCodeDataGridCell>
       <VSCodeDataGridCell gridColumn={5}>
-        <KindInput
-          kinds={predicate?.supportedKinds || []}
-          value={modeledMethod?.kind}
-          disabled={!showKindCell}
-          onChange={handleKindChange}
-        />
+        {props.modelingInProgress ? (
+          <InProgressDropdown />
+        ) : (
+          <Dropdown
+            value={modeledMethod?.output}
+            options={outputOptions}
+            disabled={!showOutputCell}
+            onChange={handleOutputInput}
+          />
+        )}
+      </VSCodeDataGridCell>
+      <VSCodeDataGridCell gridColumn={6}>
+        {props.modelingInProgress ? (
+          <InProgressDropdown />
+        ) : (
+          <KindInput
+            kinds={predicate?.supportedKinds || []}
+            value={modeledMethod?.kind}
+            disabled={!showKindCell}
+            onChange={handleKindChange}
+          />
+        )}
       </VSCodeDataGridCell>
     </VSCodeDataGridRow>
   );

@@ -31,7 +31,7 @@ import { showResolvableLocation } from "../databases/local-databases/locations";
 import { decodeBqrsToExternalApiUsages } from "./bqrs";
 import { redactableError } from "../common/errors";
 import { readQueryResults, runQuery } from "./external-api-usage-query";
-import { ExternalApiUsage } from "./external-api-usage";
+import { ExternalApiUsage, MethodSignature } from "./external-api-usage";
 import { ModeledMethod } from "./modeled-method";
 import { ExtensionPack } from "./shared/extension-pack";
 import { autoModel, ModelRequest, ModelResponse } from "./auto-model-api";
@@ -381,7 +381,7 @@ export class DataExtensionsEditorView extends AbstractWebview<
       let predictedModeledMethods: Record<string, ModeledMethod> | undefined;
 
       if (useLlmGenerationV2()) {
-        predictedModeledMethods = await this.autoModelV2(
+        await this.autoModelV2(
           externalApiUsages,
           modeledMethods,
           progress,
@@ -449,25 +449,12 @@ export class DataExtensionsEditorView extends AbstractWebview<
     });
   }
 
-  private async autoModelV2(
-    externalApiUsages: ExternalApiUsage[],
-    modeledMethods: Record<string, ModeledMethod>,
+  private async autoModelCandidatesV2(
+    candidateMethods: MethodSignature[],
     progress: ProgressCallback,
+    currentStep: number,
     maxStep: number,
-  ): Promise<Record<string, ModeledMethod> | undefined> {
-    // Fetch the candidates to send to the model
-    const candidateMethods = getCandidates(
-      this.mode,
-      externalApiUsages,
-      modeledMethods,
-    );
-
-    // If there are no candidates, there is nothing to model and we just return
-    if (candidateMethods.length === 0) {
-      void extLogger.log("No candidates to model. Stopping.");
-      return;
-    }
-
+  ): Promise<void> {
     const usages = await runAutoModelQueries({
       mode: this.mode,
       candidateMethods,
@@ -480,12 +467,6 @@ export class DataExtensionsEditorView extends AbstractWebview<
     if (!usages) {
       return;
     }
-
-    progress({
-      step: 1800,
-      maxStep,
-      message: "Creating request",
-    });
 
     // TODO: TEMP LOGGING CODE - START
     const results = usages.candidates.runs[0].results;
@@ -517,24 +498,18 @@ export class DataExtensionsEditorView extends AbstractWebview<
     });
     // TODO: TEMP LOGGING CODE - END
 
-    const request = await createAutoModelV2Request(this.mode, usages);
-
     progress({
-      step: 2000,
+      step: currentStep + 50,
       maxStep,
-      message: "Sending request",
+      message: "Calling auto-model API",
     });
+
+    const request = await createAutoModelV2Request(this.mode, usages);
 
     const response = await this.callAutoModelApiV2(request);
     if (!response) {
       return;
     }
-
-    progress({
-      step: 2500,
-      maxStep,
-      message: "Parsing response",
-    });
 
     const models = loadYaml(response.models, {
       filename: "auto-model.yml",
@@ -567,7 +542,65 @@ export class DataExtensionsEditorView extends AbstractWebview<
       }
     }
 
-    return loadedMethods;
+    await this.postMessage({
+      t: "addModeledMethods",
+      modeledMethods: loadedMethods,
+    });
+  }
+
+  private async autoModelV2(
+    externalApiUsages: ExternalApiUsage[],
+    modeledMethods: Record<string, ModeledMethod>,
+    progress: ProgressCallback,
+    maxStep: number,
+  ): Promise<void> {
+    // Fetch the candidates to send to the model
+    const allCandidateMethods = getCandidates(
+      this.mode,
+      externalApiUsages,
+      modeledMethods,
+    );
+
+    // If there are no candidates, there is nothing to model and we just return
+    if (allCandidateMethods.length === 0) {
+      void extLogger.log("No candidates to model. Stopping.");
+      return;
+    }
+
+    // Find number of slices to make
+    const batchSize = 2;
+    const batchNumber = Math.ceil(allCandidateMethods.length / batchSize);
+    try {
+      for (let i = 0; i < batchNumber; i++) {
+        const start = i * batchSize;
+        const end = start + batchSize;
+        const candidatesToProcess = allCandidateMethods.slice(start, end);
+
+        await this.postMessage({
+          t: "setInProgressMethods",
+          inProgressMethods: candidatesToProcess.map((c) => c.signature),
+        });
+
+        progress({
+          step: 1800 + i * 100,
+          maxStep,
+          message: `Automodeling candidates, batch ${i + 1} of ${batchNumber}`,
+        });
+
+        await this.autoModelCandidatesV2(
+          candidatesToProcess,
+          progress,
+          1800 + i * 100,
+          maxStep,
+        );
+      }
+    } finally {
+      // Clear out in progress methods
+      await this.postMessage({
+        t: "setInProgressMethods",
+        inProgressMethods: [],
+      });
+    }
   }
 
   private async modelDependency(): Promise<void> {

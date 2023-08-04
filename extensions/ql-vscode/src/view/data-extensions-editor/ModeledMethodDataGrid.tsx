@@ -15,6 +15,7 @@ type Props = {
   externalApiUsages: ExternalApiUsage[];
   modeledMethods: Record<string, ModeledMethod>;
   modifiedSignatures: Set<string>;
+  inProgressSignatures: Set<string>;
   mode: Mode;
   hideModeledApis: boolean;
   onChange: (
@@ -27,6 +28,7 @@ export const ModeledMethodDataGrid = ({
   externalApiUsages,
   modeledMethods,
   modifiedSignatures,
+  inProgressSignatures,
   mode,
   hideModeledApis,
   onChange,
@@ -37,21 +39,25 @@ export const ModeledMethodDataGrid = ({
   );
 
   return (
-    <VSCodeDataGrid gridTemplateColumns="0.5fr 0.125fr 0.125fr 0.125fr 0.125fr">
+    <VSCodeDataGrid gridTemplateColumns="0.5fr 0.125fr 0.125fr 0.125fr 0.125fr 0.125fr">
       <VSCodeDataGridRow rowType="header">
         <VSCodeDataGridCell cellType="columnheader" gridColumn={1}>
           API or method
         </VSCodeDataGridCell>
-        <VSCodeDataGridCell cellType="columnheader" gridColumn={2}>
+        <VSCodeDataGridCell
+          cellType="columnheader"
+          gridColumn={2}
+        ></VSCodeDataGridCell>
+        <VSCodeDataGridCell cellType="columnheader" gridColumn={3}>
           Model type
         </VSCodeDataGridCell>
-        <VSCodeDataGridCell cellType="columnheader" gridColumn={3}>
+        <VSCodeDataGridCell cellType="columnheader" gridColumn={4}>
           Input
         </VSCodeDataGridCell>
-        <VSCodeDataGridCell cellType="columnheader" gridColumn={4}>
+        <VSCodeDataGridCell cellType="columnheader" gridColumn={5}>
           Output
         </VSCodeDataGridCell>
-        <VSCodeDataGridCell cellType="columnheader" gridColumn={5}>
+        <VSCodeDataGridCell cellType="columnheader" gridColumn={6}>
           Kind
         </VSCodeDataGridCell>
       </VSCodeDataGridRow>
@@ -61,6 +67,9 @@ export const ModeledMethodDataGrid = ({
           externalApiUsage={externalApiUsage}
           modeledMethod={modeledMethods[externalApiUsage.signature]}
           methodIsUnsaved={modifiedSignatures.has(externalApiUsage.signature)}
+          modelingInProgress={inProgressSignatures.has(
+            externalApiUsage.signature,
+          )}
           mode={mode}
           hideModeledApis={hideModeledApis}
           onChange={onChange}

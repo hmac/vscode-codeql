@@ -211,7 +211,7 @@ export async function runAutoModelQueries({
   progress({
     step: 0,
     maxStep,
-    message: "Finding candidates and examples",
+    message: "Running extraction queries",
   });
 
   const candidates = await runAutoModelQuery({
@@ -229,7 +229,7 @@ export async function runAutoModelQueries({
       progress({
         step: update.step,
         maxStep,
-        message: "Finding candidates and examples",
+        message: "Running extraction queries",
       });
     },
     token: cancellationTokenSource.token,
