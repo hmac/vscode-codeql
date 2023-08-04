@@ -378,124 +378,15 @@ export class DataExtensionsEditorView extends AbstractWebview<
         message: "Retrieving usages",
       });
 
-      let predictedModeledMethods: Record<string, ModeledMethod>;
+      let predictedModeledMethods: Record<string, ModeledMethod> | undefined;
 
       if (useLlmGenerationV2()) {
-        // Fetch the candidates to send to the model
-        const candidateMethods = getCandidates(
-          this.mode,
+        predictedModeledMethods = await this.autoModelV2(
           externalApiUsages,
           modeledMethods,
+          progress,
+          maxStep,
         );
-
-        // If there are no candidates, there is nothing to model and we just return
-        if (candidateMethods.length === 0) {
-          void extLogger.log("No candidates to model. Stopping.");
-          return;
-        }
-
-        const usages = await runAutoModelQueries({
-          mode: this.mode,
-          candidateMethods,
-          cliServer: this.cliServer,
-          queryRunner: this.queryRunner,
-          queryStorageDir: this.queryStorageDir,
-          databaseItem: this.databaseItem,
-          progress: (update) => progress({ ...update, maxStep }),
-        });
-        if (!usages) {
-          return;
-        }
-
-        progress({
-          step: 1800,
-          maxStep,
-          message: "Creating request",
-        });
-
-        // TODO: TEMP LOGGING CODE - START
-        const results = usages.candidates.runs[0].results;
-        void extLogger.log("CANDIDATES:");
-        results?.forEach((result) => {
-          const pckage =
-            result.relatedLocations?.[1].physicalLocation?.artifactLocation?.uri?.substring(
-              6,
-            );
-          const tp =
-            result.relatedLocations?.[2].physicalLocation?.artifactLocation?.uri?.substring(
-              6,
-            );
-          const method =
-            result.relatedLocations?.[4].physicalLocation?.artifactLocation?.uri?.substring(
-              6,
-            );
-          let signature =
-            result.relatedLocations?.[5].physicalLocation?.artifactLocation?.uri?.substring(
-              6,
-            );
-          signature = signature && decodeURI(signature);
-          let input =
-            result.relatedLocations?.[6].physicalLocation?.artifactLocation?.uri?.substring(
-              6,
-            );
-          input = input && decodeURI(input);
-          void extLogger.log(
-            `${pckage}.${tp}.${method}${signature} @ ${input}`,
-          );
-        });
-        // TODO: TEMP LOGGING CODE - END
-
-        const request = await createAutoModelV2Request(this.mode, usages);
-
-        progress({
-          step: 2000,
-          maxStep,
-          message: "Sending request",
-        });
-
-        const response = await this.callAutoModelApiV2(request);
-        if (!response) {
-          return;
-        }
-
-        progress({
-          step: 2500,
-          maxStep,
-          message: "Parsing response",
-        });
-
-        const models = loadYaml(response.models, {
-          filename: "auto-model.yml",
-        });
-
-        const loadedMethods = loadDataExtensionYaml(models);
-        if (!loadedMethods) {
-          return;
-        }
-
-        // Any candidate that was part of the response is a negative result
-        // meaning that the canidate is not a sink for the kinds that the LLM is checking for.
-        // For now we model this as a sink neutral method, however this is subject
-        // to discussion.
-
-        for (const candidate of candidateMethods) {
-          if (!(candidate.signature in loadedMethods)) {
-            loadedMethods[candidate.signature] = {
-              type: "neutral",
-              kind: "sink",
-              input: "",
-              output: "",
-              provenance: "ai-generated",
-              signature: candidate.signature,
-              packageName: candidate.packageName,
-              typeName: candidate.typeName,
-              methodName: candidate.methodName,
-              methodParameters: candidate.methodParameters,
-            };
-          }
-        }
-
-        predictedModeledMethods = loadedMethods;
       } else {
         const usages = await getAutoModelUsages({
           cliServer: this.cliServer,
@@ -547,11 +438,136 @@ export class DataExtensionsEditorView extends AbstractWebview<
         message: "Applying results",
       });
 
+      if (!predictedModeledMethods) {
+        return;
+      }
+
       await this.postMessage({
         t: "addModeledMethods",
         modeledMethods: predictedModeledMethods,
       });
     });
+  }
+
+  private async autoModelV2(
+    externalApiUsages: ExternalApiUsage[],
+    modeledMethods: Record<string, ModeledMethod>,
+    progress: ProgressCallback,
+    maxStep: number,
+  ): Promise<Record<string, ModeledMethod> | undefined> {
+    // Fetch the candidates to send to the model
+    const candidateMethods = getCandidates(
+      this.mode,
+      externalApiUsages,
+      modeledMethods,
+    );
+
+    // If there are no candidates, there is nothing to model and we just return
+    if (candidateMethods.length === 0) {
+      void extLogger.log("No candidates to model. Stopping.");
+      return;
+    }
+
+    const usages = await runAutoModelQueries({
+      mode: this.mode,
+      candidateMethods,
+      cliServer: this.cliServer,
+      queryRunner: this.queryRunner,
+      queryStorageDir: this.queryStorageDir,
+      databaseItem: this.databaseItem,
+      progress: (update) => progress({ ...update, maxStep }),
+    });
+    if (!usages) {
+      return;
+    }
+
+    progress({
+      step: 1800,
+      maxStep,
+      message: "Creating request",
+    });
+
+    // TODO: TEMP LOGGING CODE - START
+    const results = usages.candidates.runs[0].results;
+    void extLogger.log("CANDIDATES:");
+    results?.forEach((result) => {
+      const pckage =
+        result.relatedLocations?.[1].physicalLocation?.artifactLocation?.uri?.substring(
+          6,
+        );
+      const tp =
+        result.relatedLocations?.[2].physicalLocation?.artifactLocation?.uri?.substring(
+          6,
+        );
+      const method =
+        result.relatedLocations?.[4].physicalLocation?.artifactLocation?.uri?.substring(
+          6,
+        );
+      let signature =
+        result.relatedLocations?.[5].physicalLocation?.artifactLocation?.uri?.substring(
+          6,
+        );
+      signature = signature && decodeURI(signature);
+      let input =
+        result.relatedLocations?.[6].physicalLocation?.artifactLocation?.uri?.substring(
+          6,
+        );
+      input = input && decodeURI(input);
+      void extLogger.log(`${pckage}.${tp}.${method}${signature} @ ${input}`);
+    });
+    // TODO: TEMP LOGGING CODE - END
+
+    const request = await createAutoModelV2Request(this.mode, usages);
+
+    progress({
+      step: 2000,
+      maxStep,
+      message: "Sending request",
+    });
+
+    const response = await this.callAutoModelApiV2(request);
+    if (!response) {
+      return;
+    }
+
+    progress({
+      step: 2500,
+      maxStep,
+      message: "Parsing response",
+    });
+
+    const models = loadYaml(response.models, {
+      filename: "auto-model.yml",
+    });
+
+    const loadedMethods = loadDataExtensionYaml(models);
+    if (!loadedMethods) {
+      return;
+    }
+
+    // Any candidate that was part of the response is a negative result
+    // meaning that the canidate is not a sink for the kinds that the LLM is checking for.
+    // For now we model this as a sink neutral method, however this is subject
+    // to discussion.
+
+    for (const candidate of candidateMethods) {
+      if (!(candidate.signature in loadedMethods)) {
+        loadedMethods[candidate.signature] = {
+          type: "neutral",
+          kind: "sink",
+          input: "",
+          output: "",
+          provenance: "ai-generated",
+          signature: candidate.signature,
+          packageName: candidate.packageName,
+          typeName: candidate.typeName,
+          methodName: candidate.methodName,
+          methodParameters: candidate.methodParameters,
+        };
+      }
+    }
+
+    return loadedMethods;
   }
 
   private async modelDependency(): Promise<void> {
