@@ -213,6 +213,8 @@ function createCodeSearchRequestHandler(
       requestIndex++;
     }
 
+    console.log("****** code search handler hit ******");
+
     return res(
       ctx.status(request.response.status),
       ctx.json(request.response.body),

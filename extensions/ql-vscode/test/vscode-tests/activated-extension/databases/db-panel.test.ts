@@ -1,4 +1,4 @@
-import { window } from "vscode";
+import { authentication, window } from "vscode";
 
 import { readJson } from "fs-extra";
 import * as path from "path";
@@ -128,13 +128,23 @@ describe("Db panel UI commands", () => {
 
     await mockServer.loadScenario("code-search-success");
 
+    jest.spyOn(authentication, "getSession").mockResolvedValue({
+      id: "test",
+      accessToken: "test-token",
+      scopes: [],
+      account: {
+        id: "test",
+        label: "test",
+      },
+    });
+
     jest.spyOn(window, "showInputBox").mockResolvedValue("listname");
     await commandManager.execute(
       "codeQLVariantAnalysisRepositories.addNewList",
     );
 
     const dbTreeViewItem = createDbTreeViewItemUserDefinedList(
-      createRemoteUserDefinedListDbItem(),
+      createRemoteUserDefinedListDbItem({ listName: "listname" }),
       "listname",
       [],
     );
@@ -166,7 +176,20 @@ describe("Db panel UI commands", () => {
     );
     expect(
       dbConfig.databases.variantAnalysis.repositoryLists[0].repositories,
-    ).toBe([]);
+    ).toEqual([
+      "dotnet/aspnetcore",
+      "dotnet/efcore",
+      "dotnet/machinelearning",
+      "dotnet/roslyn",
+      "dotnet/maui",
+      "dotnet/msbuild",
+      "dotnet/Microsoft.Maui.Graphics",
+      "dotnet/dotnet",
+      "dotnet/BenchmarkDotNet",
+      "dotnet/runtime",
+      "dotnet/core",
+      "dotnet/Microsoft.Maui.Graphics.Controls",
+    ]);
 
     await mockServer.unloadScenario();
     mockServer.stopServer();
