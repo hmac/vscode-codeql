@@ -25,12 +25,14 @@ import { ModelDetailsPanel } from "./model-details/model-details-panel";
 import { Mode } from "./shared/mode";
 import { showResolvableLocation } from "../databases/local-databases/locations";
 import { Usage } from "./external-api-usage";
+import { FooPanel } from "./foo/foo-panel";
 
 const SUPPORTED_LANGUAGES: string[] = ["java", "csharp"];
 
 export class DataExtensionsEditorModule extends DisposableObject {
   private readonly queryStorageDir: string;
   private readonly modelDetailsPanel: ModelDetailsPanel;
+  private readonly modelFooPanel: FooPanel;
 
   private mostRecentlyActiveView: DataExtensionsEditorView | undefined =
     undefined;
@@ -49,6 +51,11 @@ export class DataExtensionsEditorModule extends DisposableObject {
       "data-extensions-editor-results",
     );
     this.modelDetailsPanel = this.push(new ModelDetailsPanel(cliServer));
+    this.modelFooPanel = this.push(new FooPanel(ctx));
+  }
+
+  public getModelFooPanel(): FooPanel {
+    return this.modelFooPanel;
   }
 
   private handleViewBecameActive(view: DataExtensionsEditorView): void {

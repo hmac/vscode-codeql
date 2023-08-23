@@ -1765,6 +1765,13 @@
           "name": "CodeQL Model Details",
           "when": "config.codeQL.canary && codeql.dataExtensionsEditorOpen"
         }
+      ],
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "codeQLModelFoo",
+          "name": "Method Modeling"
+        }
       ]
     },
     "viewsWelcome": [

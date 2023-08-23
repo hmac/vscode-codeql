@@ -7,7 +7,8 @@ export type WebviewView =
   | "compare"
   | "variant-analysis"
   | "data-flow-paths"
-  | "data-extensions-editor";
+  | "data-extensions-editor"
+  | "foo";
 
 export interface WebviewMessage {
   t: string;
