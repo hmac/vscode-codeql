@@ -245,6 +245,11 @@ export class DatabaseUI extends DisposableObject {
         this.handleMakeCurrentDatabase.bind(this),
       "codeQLDatabases.sortByName": this.handleSortByName.bind(this),
       "codeQLDatabases.sortByDateAdded": this.handleSortByDateAdded.bind(this),
+      // TODO: Actually implement these language commands
+      "codeQLDatabases.displayAllLanguages": this.handleSortByName.bind(this),
+      "codeQLDatabases.displayCpp": this.handleSortByName.bind(this),
+      "codeQLDatabases.displayCsharp": this.handleSortByName.bind(this),
+      "codeQLDatabases.displayGo": this.handleSortByName.bind(this),
       "codeQLDatabases.removeDatabase": createMultiSelectionCommand(
         this.handleRemoveDatabase.bind(this),
       ),
