@@ -12,6 +12,7 @@ import { DbModelingState, ModelingStore } from "../modeling-store";
 import { AbstractWebviewViewProvider } from "../../common/vscode/abstract-webview-view-provider";
 import { assertNever } from "../../common/helpers-pure";
 import { ModelEditorViewTracker } from "../model-editor-view-tracker";
+import { ModelingEvents } from "../modeling-events";
 
 export class MethodModelingViewProvider extends AbstractWebviewViewProvider<
   ToMethodModelingMessage,
@@ -24,6 +25,7 @@ export class MethodModelingViewProvider extends AbstractWebviewViewProvider<
   constructor(
     app: App,
     private readonly modelingStore: ModelingStore,
+    private readonly modelingEvents: ModelingEvents,
     private readonly editorViewTracker: ModelEditorViewTracker,
   ) {
     super(app, "method-modeling");
@@ -31,7 +33,7 @@ export class MethodModelingViewProvider extends AbstractWebviewViewProvider<
 
   protected override onWebViewLoaded(): void {
     this.setInitialState();
-    this.registerToModelingStoreEvents();
+    this.registerToModelingEvents();
   }
 
   public async setMethod(method: Method): Promise<void> {
@@ -119,9 +121,9 @@ export class MethodModelingViewProvider extends AbstractWebviewViewProvider<
     return activeState;
   }
 
-  private registerToModelingStoreEvents(): void {
+  private registerToModelingEvents(): void {
     this.push(
-      this.modelingStore.onModeledMethodsChanged(async (e) => {
+      this.modelingEvents.onModeledMethodsChanged(async (e) => {
         if (this.webviewView && e.isActiveDb) {
           const modeledMethod = e.modeledMethods[this.method?.signature ?? ""];
           if (modeledMethod) {
@@ -135,7 +137,7 @@ export class MethodModelingViewProvider extends AbstractWebviewViewProvider<
     );
 
     this.push(
-      this.modelingStore.onModifiedMethodsChanged(async (e) => {
+      this.modelingEvents.onModifiedMethodsChanged(async (e) => {
         if (this.webviewView && e.isActiveDb && this.method) {
           const isModified = e.modifiedMethods.has(this.method.signature);
           await this.webviewView.webview.postMessage({
@@ -147,7 +149,7 @@ export class MethodModelingViewProvider extends AbstractWebviewViewProvider<
     );
 
     this.push(
-      this.modelingStore.onSelectedMethodChanged(async (e) => {
+      this.modelingEvents.onSelectedMethodChanged(async (e) => {
         if (this.webviewView) {
           this.method = e.method;
           await this.webviewView.webview.postMessage({

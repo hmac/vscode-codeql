@@ -21,6 +21,7 @@ import { MethodModelingPanel } from "./method-modeling/method-modeling-panel";
 import { ModelingStore } from "./modeling-store";
 import { showResolvableLocation } from "../databases/local-databases/locations";
 import { ModelEditorViewTracker } from "./model-editor-view-tracker";
+import { ModelingEvents } from "./modeling-events";
 
 const SUPPORTED_LANGUAGES: string[] = ["java", "csharp"];
 
@@ -30,6 +31,7 @@ export class ModelEditorModule extends DisposableObject {
   private readonly editorViewTracker: ModelEditorViewTracker<ModelEditorView>;
   private readonly methodsUsagePanel: MethodsUsagePanel;
   private readonly methodModelingPanel: MethodModelingPanel;
+  private readonly modelingEvents: ModelingEvents;
 
   private constructor(
     private readonly app: App,
@@ -40,16 +42,22 @@ export class ModelEditorModule extends DisposableObject {
   ) {
     super();
     this.queryStorageDir = join(baseQueryStorageDir, "model-editor-results");
-    this.modelingStore = new ModelingStore(app);
+    this.modelingEvents = new ModelingEvents(app);
+    this.modelingStore = new ModelingStore(this.modelingEvents);
     this.editorViewTracker = new ModelEditorViewTracker();
     this.methodsUsagePanel = this.push(
-      new MethodsUsagePanel(this.modelingStore, cliServer),
+      new MethodsUsagePanel(this.modelingStore, this.modelingEvents, cliServer),
     );
     this.methodModelingPanel = this.push(
-      new MethodModelingPanel(app, this.modelingStore, this.editorViewTracker),
+      new MethodModelingPanel(
+        app,
+        this.modelingStore,
+        this.modelingEvents,
+        this.editorViewTracker,
+      ),
     );
 
-    this.registerToModelingStoreEvents();
+    this.registerToModelingEvents();
   }
 
   public static async initialize(
@@ -151,6 +159,7 @@ export class ModelEditorModule extends DisposableObject {
             const view = new ModelEditorView(
               this.app,
               this.modelingStore,
+              this.modelingEvents,
               this.editorViewTracker,
               this.databaseManager,
               this.cliServer,
@@ -162,7 +171,7 @@ export class ModelEditorModule extends DisposableObject {
               Mode.Application,
             );
 
-            this.modelingStore.onDbClosed(async (dbUri) => {
+            this.modelingEvents.onDbClosed(async (dbUri) => {
               if (dbUri === db.databaseUri.toString()) {
                 await cleanupQueryDir();
               }
@@ -196,9 +205,9 @@ export class ModelEditorModule extends DisposableObject {
     await ensureDir(this.queryStorageDir);
   }
 
-  private registerToModelingStoreEvents(): void {
+  private registerToModelingEvents(): void {
     this.push(
-      this.modelingStore.onSelectedMethodChanged(async (event) => {
+      this.modelingEvents.onSelectedMethodChanged(async (event) => {
         await this.showMethod(event.databaseItem, event.method, event.usage);
       }),
     );

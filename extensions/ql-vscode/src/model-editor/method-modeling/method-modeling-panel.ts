@@ -5,6 +5,7 @@ import { MethodModelingViewProvider } from "./method-modeling-view-provider";
 import { Method } from "../method";
 import { ModelingStore } from "../modeling-store";
 import { ModelEditorViewTracker } from "../model-editor-view-tracker";
+import { ModelingEvents } from "../modeling-events";
 
 export class MethodModelingPanel extends DisposableObject {
   private readonly provider: MethodModelingViewProvider;
@@ -12,6 +13,7 @@ export class MethodModelingPanel extends DisposableObject {
   constructor(
     app: App,
     modelingStore: ModelingStore,
+    modelingEvents: ModelingEvents,
     editorViewTracker: ModelEditorViewTracker,
   ) {
     super();
@@ -19,6 +21,7 @@ export class MethodModelingPanel extends DisposableObject {
     this.provider = new MethodModelingViewProvider(
       app,
       modelingStore,
+      modelingEvents,
       editorViewTracker,
     );
     this.push(

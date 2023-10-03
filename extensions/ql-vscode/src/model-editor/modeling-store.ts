@@ -1,9 +1,8 @@
-import { App } from "../common/app";
 import { DisposableObject } from "../common/disposable-object";
-import { AppEvent, AppEventEmitter } from "../common/events";
 import { DatabaseItem } from "../databases/local-databases";
 import { Method, Usage } from "./method";
 import { ModeledMethod } from "./modeled-method";
+import { ModelingEvents } from "./modeling-events";
 import { INITIAL_HIDE_MODELED_METHODS_VALUE } from "./shared/hide-modeled-methods";
 
 export interface DbModelingState {
@@ -16,100 +15,14 @@ export interface DbModelingState {
   selectedUsage: Usage | undefined;
 }
 
-interface MethodsChangedEvent {
-  methods: Method[];
-  dbUri: string;
-  isActiveDb: boolean;
-}
-
-interface HideModeledMethodsChangedEvent {
-  hideModeledMethods: boolean;
-  isActiveDb: boolean;
-}
-
-interface ModeledMethodsChangedEvent {
-  modeledMethods: Record<string, ModeledMethod>;
-  dbUri: string;
-  isActiveDb: boolean;
-}
-
-interface ModifiedMethodsChangedEvent {
-  modifiedMethods: Set<string>;
-  dbUri: string;
-  isActiveDb: boolean;
-}
-
-interface SelectedMethodChangedEvent {
-  databaseItem: DatabaseItem;
-  method: Method;
-  usage: Usage;
-  modeledMethod: ModeledMethod | undefined;
-  isModified: boolean;
-}
-
 export class ModelingStore extends DisposableObject {
-  public readonly onActiveDbChanged: AppEvent<void>;
-  public readonly onDbClosed: AppEvent<string>;
-  public readonly onMethodsChanged: AppEvent<MethodsChangedEvent>;
-  public readonly onHideModeledMethodsChanged: AppEvent<HideModeledMethodsChangedEvent>;
-  public readonly onModeledMethodsChanged: AppEvent<ModeledMethodsChangedEvent>;
-  public readonly onModifiedMethodsChanged: AppEvent<ModifiedMethodsChangedEvent>;
-  public readonly onSelectedMethodChanged: AppEvent<SelectedMethodChangedEvent>;
-
   private readonly state: Map<string, DbModelingState>;
   private activeDb: string | undefined;
 
-  private readonly onActiveDbChangedEventEmitter: AppEventEmitter<void>;
-  private readonly onDbClosedEventEmitter: AppEventEmitter<string>;
-  private readonly onMethodsChangedEventEmitter: AppEventEmitter<MethodsChangedEvent>;
-  private readonly onHideModeledMethodsChangedEventEmitter: AppEventEmitter<HideModeledMethodsChangedEvent>;
-  private readonly onModeledMethodsChangedEventEmitter: AppEventEmitter<ModeledMethodsChangedEvent>;
-  private readonly onModifiedMethodsChangedEventEmitter: AppEventEmitter<ModifiedMethodsChangedEvent>;
-  private readonly onSelectedMethodChangedEventEmitter: AppEventEmitter<SelectedMethodChangedEvent>;
-
-  constructor(app: App) {
+  constructor(private readonly modelingEvents: ModelingEvents) {
     super();
 
-    // State initialization
     this.state = new Map<string, DbModelingState>();
-
-    // Event initialization
-    this.onActiveDbChangedEventEmitter = this.push(
-      app.createEventEmitter<void>(),
-    );
-    this.onActiveDbChanged = this.onActiveDbChangedEventEmitter.event;
-
-    this.onDbClosedEventEmitter = this.push(app.createEventEmitter<string>());
-    this.onDbClosed = this.onDbClosedEventEmitter.event;
-
-    this.onMethodsChangedEventEmitter = this.push(
-      app.createEventEmitter<MethodsChangedEvent>(),
-    );
-    this.onMethodsChanged = this.onMethodsChangedEventEmitter.event;
-
-    this.onHideModeledMethodsChangedEventEmitter = this.push(
-      app.createEventEmitter<HideModeledMethodsChangedEvent>(),
-    );
-    this.onHideModeledMethodsChanged =
-      this.onHideModeledMethodsChangedEventEmitter.event;
-
-    this.onModeledMethodsChangedEventEmitter = this.push(
-      app.createEventEmitter<ModeledMethodsChangedEvent>(),
-    );
-    this.onModeledMethodsChanged =
-      this.onModeledMethodsChangedEventEmitter.event;
-
-    this.onModifiedMethodsChangedEventEmitter = this.push(
-      app.createEventEmitter<ModifiedMethodsChangedEvent>(),
-    );
-    this.onModifiedMethodsChanged =
-      this.onModifiedMethodsChangedEventEmitter.event;
-
-    this.onSelectedMethodChangedEventEmitter = this.push(
-      app.createEventEmitter<SelectedMethodChangedEvent>(),
-    );
-    this.onSelectedMethodChanged =
-      this.onSelectedMethodChangedEventEmitter.event;
   }
 
   public initializeStateForDb(databaseItem: DatabaseItem) {
@@ -127,7 +40,7 @@ export class ModelingStore extends DisposableObject {
 
   public setActiveDb(databaseItem: DatabaseItem) {
     this.activeDb = databaseItem.databaseUri.toString();
-    this.onActiveDbChangedEventEmitter.fire();
+    this.modelingEvents.fireActiveDbChanged();
   }
 
   public removeDb(databaseItem: DatabaseItem) {
@@ -139,11 +52,11 @@ export class ModelingStore extends DisposableObject {
 
     if (this.activeDb === dbUri) {
       this.activeDb = undefined;
-      this.onActiveDbChangedEventEmitter.fire();
+      this.modelingEvents.fireActiveDbChanged();
     }
 
     this.state.delete(dbUri);
-    this.onDbClosedEventEmitter.fire(dbUri);
+    this.modelingEvents.fireDbClosed(dbUri);
   }
 
   public getStateForActiveDb(): DbModelingState | undefined {
@@ -160,11 +73,11 @@ export class ModelingStore extends DisposableObject {
 
     dbState.methods = [...methods];
 
-    this.onMethodsChangedEventEmitter.fire({
+    this.modelingEvents.fireMethodsChanged(
       methods,
       dbUri,
-      isActiveDb: dbUri === this.activeDb,
-    });
+      dbUri === this.activeDb,
+    );
   }
 
   public setHideModeledMethods(
@@ -176,10 +89,10 @@ export class ModelingStore extends DisposableObject {
 
     dbState.hideModeledMethods = hideModeledMethods;
 
-    this.onHideModeledMethodsChangedEventEmitter.fire({
+    this.modelingEvents.fireHideModeledMethodsChanged(
       hideModeledMethods,
-      isActiveDb: dbUri === this.activeDb,
-    });
+      dbUri === this.activeDb,
+    );
   }
 
   public addModeledMethods(
@@ -261,13 +174,13 @@ export class ModelingStore extends DisposableObject {
     dbState.selectedMethod = method;
     dbState.selectedUsage = usage;
 
-    this.onSelectedMethodChangedEventEmitter.fire({
-      databaseItem: dbItem,
+    this.modelingEvents.fireSelectedMethodChanged(
+      dbItem,
       method,
       usage,
-      modeledMethod: dbState.modeledMethods[method.signature],
-      isModified: dbState.modifiedMethodSignatures.has(method.signature),
-    });
+      dbState.modeledMethods[method.signature],
+      dbState.modifiedMethodSignatures.has(method.signature),
+    );
   }
 
   public getSelectedMethodDetails() {
@@ -309,11 +222,11 @@ export class ModelingStore extends DisposableObject {
 
     updateState(state);
 
-    this.onModifiedMethodsChangedEventEmitter.fire({
-      modifiedMethods: state.modifiedMethodSignatures,
-      dbUri: dbItem.databaseUri.toString(),
-      isActiveDb: dbItem.databaseUri.toString() === this.activeDb,
-    });
+    this.modelingEvents.fireModifiedMethodsChanged(
+      state.modifiedMethodSignatures,
+      dbItem.databaseUri.toString(),
+      dbItem.databaseUri.toString() === this.activeDb,
+    );
   }
 
   private changeModeledMethods(
@@ -324,10 +237,10 @@ export class ModelingStore extends DisposableObject {
 
     updateState(state);
 
-    this.onModeledMethodsChangedEventEmitter.fire({
-      modeledMethods: state.modeledMethods,
-      dbUri: dbItem.databaseUri.toString(),
-      isActiveDb: dbItem.databaseUri.toString() === this.activeDb,
-    });
+    this.modelingEvents.fireModeledMethodsChanged(
+      state.modeledMethods,
+      dbItem.databaseUri.toString(),
+      dbItem.databaseUri.toString() === this.activeDb,
+    );
   }
 }

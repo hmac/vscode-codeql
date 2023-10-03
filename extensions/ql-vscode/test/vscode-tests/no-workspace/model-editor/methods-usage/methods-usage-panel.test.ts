@@ -11,6 +11,8 @@ import {
 import { ModelingStore } from "../../../../../src/model-editor/modeling-store";
 import { createMockModelingStore } from "../../../../__mocks__/model-editor/modelingStoreMock";
 import { ModeledMethod } from "../../../../../src/model-editor/modeled-method";
+import { createMockModelingEvents } from "../../../../__mocks__/model-editor/modelingEventsMock";
+import { ModelingEvents } from "../../../../../src/model-editor/modeling-events";
 
 describe("MethodsUsagePanel", () => {
   const mockCliServer = mockedObject<CodeQLCliServer>({});
@@ -31,8 +33,13 @@ describe("MethodsUsagePanel", () => {
       jest.spyOn(window, "createTreeView").mockReturnValue(mockTreeView);
 
       const modelingStore = createMockModelingStore();
+      const modelingEvents = createMockModelingEvents();
 
-      const panel = new MethodsUsagePanel(modelingStore, mockCliServer);
+      const panel = new MethodsUsagePanel(
+        modelingStore,
+        modelingEvents,
+        mockCliServer,
+      );
       await panel.setState(
         methods,
         dbItem,
@@ -48,6 +55,7 @@ describe("MethodsUsagePanel", () => {
   describe("revealItem", () => {
     let mockTreeView: TreeView<unknown>;
     let modelingStore: ModelingStore;
+    let modelingEvents: ModelingEvents;
 
     const hideModeledMethods: boolean = false;
     const modeledMethods: Record<string, ModeledMethod> = {};
@@ -61,6 +69,7 @@ describe("MethodsUsagePanel", () => {
       jest.spyOn(window, "createTreeView").mockReturnValue(mockTreeView);
 
       modelingStore = createMockModelingStore();
+      modelingEvents = createMockModelingEvents();
     });
 
     it("should reveal the correct item in the tree view", async () => {
@@ -70,7 +79,11 @@ describe("MethodsUsagePanel", () => {
         }),
       ];
 
-      const panel = new MethodsUsagePanel(modelingStore, mockCliServer);
+      const panel = new MethodsUsagePanel(
+        modelingStore,
+        modelingEvents,
+        mockCliServer,
+      );
       await panel.setState(
         methods,
         dbItem,
@@ -86,7 +99,11 @@ describe("MethodsUsagePanel", () => {
 
     it("should do nothing if usage cannot be found", async () => {
       const methods = [createMethod({})];
-      const panel = new MethodsUsagePanel(modelingStore, mockCliServer);
+      const panel = new MethodsUsagePanel(
+        modelingStore,
+        modelingEvents,
+        mockCliServer,
+      );
       await panel.setState(
         methods,
         dbItem,

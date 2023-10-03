@@ -10,10 +10,12 @@ import { QueryRunner } from "../../../../src/query-server";
 import { ExtensionPack } from "../../../../src/model-editor/shared/extension-pack";
 import { createMockModelingStore } from "../../../__mocks__/model-editor/modelingStoreMock";
 import { createMockModelEditorViewTracker } from "../../../__mocks__/model-editor/modelEditorViewTrackerMock";
+import { createMockModelingEvents } from "../../../__mocks__/model-editor/modelingEventsMock";
 
 describe("ModelEditorView", () => {
   const app = createMockApp({});
   const modelingStore = createMockModelingStore();
+  const modelingEvents = createMockModelingEvents();
   const viewTracker = createMockModelEditorViewTracker();
   const databaseManager = mockEmptyDatabaseManager();
   const cliServer = mockedObject<CodeQLCliServer>({});
@@ -40,6 +42,7 @@ describe("ModelEditorView", () => {
     view = new ModelEditorView(
       app,
       modelingStore,
+      modelingEvents,
       viewTracker,
       databaseManager,
       cliServer,
