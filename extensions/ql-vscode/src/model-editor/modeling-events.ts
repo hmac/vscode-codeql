@@ -36,6 +36,11 @@ interface SelectedMethodChangedEvent {
   isModified: boolean;
 }
 
+interface RevealInModelEditorEvent {
+  dbUri: string;
+  method: Method;
+}
+
 export class ModelingEvents extends DisposableObject {
   public readonly onActiveDbChanged: AppEvent<void>;
   public readonly onDbClosed: AppEvent<string>;
@@ -44,6 +49,7 @@ export class ModelingEvents extends DisposableObject {
   public readonly onModeledMethodsChanged: AppEvent<ModeledMethodsChangedEvent>;
   public readonly onModifiedMethodsChanged: AppEvent<ModifiedMethodsChangedEvent>;
   public readonly onSelectedMethodChanged: AppEvent<SelectedMethodChangedEvent>;
+  public readonly onRevealInModelEditor: AppEvent<RevealInModelEditorEvent>;
 
   private readonly onActiveDbChangedEventEmitter: AppEventEmitter<void>;
   private readonly onDbClosedEventEmitter: AppEventEmitter<string>;
@@ -52,6 +58,7 @@ export class ModelingEvents extends DisposableObject {
   private readonly onModeledMethodsChangedEventEmitter: AppEventEmitter<ModeledMethodsChangedEvent>;
   private readonly onModifiedMethodsChangedEventEmitter: AppEventEmitter<ModifiedMethodsChangedEvent>;
   private readonly onSelectedMethodChangedEventEmitter: AppEventEmitter<SelectedMethodChangedEvent>;
+  private readonly onRevealInModelEditorEventEmitter: AppEventEmitter<RevealInModelEditorEvent>;
 
   constructor(app: App) {
     super();
@@ -92,6 +99,11 @@ export class ModelingEvents extends DisposableObject {
     );
     this.onSelectedMethodChanged =
       this.onSelectedMethodChangedEventEmitter.event;
+
+    this.onRevealInModelEditorEventEmitter = this.push(
+      app.createEventEmitter<RevealInModelEditorEvent>(),
+    );
+    this.onRevealInModelEditor = this.onRevealInModelEditorEventEmitter.event;
   }
 
   public fireMethodsChanged(
@@ -161,6 +173,13 @@ export class ModelingEvents extends DisposableObject {
       modeledMethods,
       dbUri,
       isActiveDb,
+    });
+  }
+
+  public fireRevealInModelEditor(dbUri: string, method: Method): void {
+    this.onRevealInModelEditorEventEmitter.fire({
+      dbUri,
+      method,
     });
   }
 }

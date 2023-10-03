@@ -11,7 +11,6 @@ import { Method } from "../method";
 import { DbModelingState, ModelingStore } from "../modeling-store";
 import { AbstractWebviewViewProvider } from "../../common/vscode/abstract-webview-view-provider";
 import { assertNever } from "../../common/helpers-pure";
-import { ModelEditorViewTracker } from "../model-editor-view-tracker";
 import { ModelingEvents } from "../modeling-events";
 
 export class MethodModelingViewProvider extends AbstractWebviewViewProvider<
@@ -26,7 +25,6 @@ export class MethodModelingViewProvider extends AbstractWebviewViewProvider<
     app: App,
     private readonly modelingStore: ModelingStore,
     private readonly modelingEvents: ModelingEvents,
-    private readonly editorViewTracker: ModelEditorViewTracker,
   ) {
     super(app, "method-modeling");
   }
@@ -102,14 +100,10 @@ export class MethodModelingViewProvider extends AbstractWebviewViewProvider<
   private async revealInModelEditor(method: Method): Promise<void> {
     const activeState = this.ensureActiveState();
 
-    const views = this.editorViewTracker.getViews(
+    this.modelingEvents.fireRevealInModelEditor(
       activeState.databaseItem.databaseUri.toString(),
+      method,
     );
-    if (views.length === 0) {
-      return;
-    }
-
-    await Promise.all(views.map((view) => view.revealMethod(method)));
   }
 
   private ensureActiveState(): DbModelingState {

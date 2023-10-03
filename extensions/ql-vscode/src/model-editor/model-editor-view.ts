@@ -42,7 +42,6 @@ import { getLanguageDisplayName } from "../common/query-language";
 import { AutoModeler } from "./auto-modeler";
 import { telemetryListener } from "../common/vscode/telemetry";
 import { ModelingStore } from "./modeling-store";
-import { ModelEditorViewTracker } from "./model-editor-view-tracker";
 import { ModelingEvents } from "./modeling-events";
 
 export class ModelEditorView extends AbstractWebview<
@@ -55,7 +54,6 @@ export class ModelEditorView extends AbstractWebview<
     protected readonly app: App,
     private readonly modelingStore: ModelingStore,
     private readonly modelingEvents: ModelingEvents,
-    private readonly viewTracker: ModelEditorViewTracker<ModelEditorView>,
     private readonly databaseManager: DatabaseManager,
     private readonly cliServer: CodeQLCliServer,
     private readonly queryRunner: QueryRunner,
@@ -69,8 +67,6 @@ export class ModelEditorView extends AbstractWebview<
 
     this.modelingStore.initializeStateForDb(databaseItem);
     this.registerToModelingEvents();
-
-    this.viewTracker.registerView(this);
 
     this.autoModeler = new AutoModeler(
       app,
@@ -187,7 +183,7 @@ export class ModelEditorView extends AbstractWebview<
   }
 
   protected onPanelDispose(): void {
-    this.viewTracker.unregisterView(this);
+    // Nothing to do.
   }
 
   protected async onMessage(msg: FromModelEditorMessage): Promise<void> {
@@ -517,7 +513,6 @@ export class ModelEditorView extends AbstractWebview<
         this.app,
         this.modelingStore,
         this.modelingEvents,
-        this.viewTracker,
         this.databaseManager,
         this.cliServer,
         this.queryRunner,
@@ -634,6 +629,14 @@ export class ModelEditorView extends AbstractWebview<
             t: "setModifiedMethods",
             methodSignatures: [...event.modifiedMethods],
           });
+        }
+      }),
+    );
+
+    this.push(
+      this.modelingEvents.onRevealInModelEditor(async (event) => {
+        if (event.dbUri === this.databaseItem.databaseUri.toString()) {
+          await this.revealMethod(event.method);
         }
       }),
     );

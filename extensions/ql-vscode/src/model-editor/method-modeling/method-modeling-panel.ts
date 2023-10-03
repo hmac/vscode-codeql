@@ -4,7 +4,6 @@ import { DisposableObject } from "../../common/disposable-object";
 import { MethodModelingViewProvider } from "./method-modeling-view-provider";
 import { Method } from "../method";
 import { ModelingStore } from "../modeling-store";
-import { ModelEditorViewTracker } from "../model-editor-view-tracker";
 import { ModelingEvents } from "../modeling-events";
 
 export class MethodModelingPanel extends DisposableObject {
@@ -14,7 +13,6 @@ export class MethodModelingPanel extends DisposableObject {
     app: App,
     modelingStore: ModelingStore,
     modelingEvents: ModelingEvents,
-    editorViewTracker: ModelEditorViewTracker,
   ) {
     super();
 
@@ -22,7 +20,6 @@ export class MethodModelingPanel extends DisposableObject {
       app,
       modelingStore,
       modelingEvents,
-      editorViewTracker,
     );
     this.push(
       window.registerWebviewViewProvider(
